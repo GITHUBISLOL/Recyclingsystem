@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Public Recycling Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Roboto", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 p-5 text-gray-800">
+    <h2 class="text-3xl text-center mb-8 text-slate-800 font-bold">
+      ♻️ Public Recycling Dashboard
+    </h2>
+
+    <!-- Leaderboard -->
+    <div
+      class="flex gap-6 justify-center my-8 flex-wrap"
+      id="leaderboard"
+    ></div>
+
+    <div class="max-w-md mx-auto mb-8 flex shadow-sm">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search by recycler..."
+        class="flex-1 p-3 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-slate-500"
+      />
+      <button
+        onclick="searchTable()"
+        class="py-3 px-6 bg-slate-700 text-white font-bold rounded-r-lg hover:bg-slate-800 transition duration-200"
+      >
+        Search
+      </button>
+    </div>
+
+    <div
+      class="max-w-7xl mx-auto bg-white p-6 rounded-xl shadow-xl"
+      id="dashboard"
+    ></div>
+
+    <script>
+      let allItems = [];
+      let recyclerMap = {};
+
+      async function loadDashboard() {
+        // Fetch bin data from the API (MySQL database)
+        try {
+          console.log("Loading Dashboard from API...");
+          const response = await fetch("/api/getBins");
+          const bins = await response.json();
+
+          console.log("Bins data:", bins);
+
+          const container = document.getElementById("dashboard");
+          container.innerHTML = "";
+
+          if (!bins || bins.length === 0) {
+            container.innerHTML = `<div class="p-8 text-center text-gray-500">
+                    <p class="text-xl">No recycling data found yet.</p>
+                 </div>`;
+            return;
+          }
+
+          // Group by recycler_name
+          allItems = bins;
+          recyclerMap = {};
+
+          bins.forEach((bin) => {
+            if (!recyclerMap[bin.recycler_name]) {
+              recyclerMap[bin.recycler_name] = [];
+            }
+            recyclerMap[bin.recycler_name].push(bin);
+          });
+
+          renderDashboard(Object.keys(recyclerMap));
+        } catch (error) {
+          console.error("Error loading dashboard:", error);
+          document.getElementById("dashboard").innerHTML =
+            `<div class="p-8 text-center text-red-500">
+                <p class="text-xl">Error loading data: ${error.message}</p>
+            </div>`;
+        }
+      }
+
+      // Render recycler sections
+      function renderDashboard(recyclers) {
+        const container = document.getElementById("dashboard");
+        container.innerHTML = "";
+
+        recyclers.forEach((name) => {
+          // Recycler header
+          const header = document.createElement("div");
+          header.className =
+            "bg-slate-700 text-white font-bold p-4 mt-4 cursor-pointer rounded-lg select-none hover:bg-slate-800 transition shadow-sm flex justify-between items-center";
+          header.innerHTML = `<span>${name}</span> <span class="bg-slate-600 px-2 py-1 rounded text-sm">${recyclerMap[name].length} item(s)</span>`;
+
+          header.onclick = () => {
+            const logsDiv = header.nextSibling;
+            if (logsDiv.classList.contains("hidden")) {
+              logsDiv.classList.remove("hidden");
+            } else {
+              logsDiv.classList.add("hidden");
+            }
+          };
+          container.appendChild(header);
+
+          // Recycler logs table
+          const logsDiv = document.createElement("div");
+          logsDiv.className =
+            "hidden mt-2 rounded-lg overflow-x-auto border border-gray-200 shadow-inner";
+
+          const table = document.createElement("table");
+          table.className = "w-full border-collapse min-w-[900px] text-sm";
+          const thead = document.createElement("thead");
+          thead.className =
+            "bg-slate-100 text-slate-700 uppercase font-semibold text-xs";
+          thead.innerHTML = `
+            <tr>
+                <th class="p-3 border-b border-gray-200 text-center">ID</th>
+                <th class="p-3 border-b border-gray-200 text-center">Item ID</th>
+                <th class="p-3 border-b border-gray-200 text-center">Material</th>
+                <th class="p-3 border-b border-gray-200 text-center">Weight (kg)</th>
+                <th class="p-3 border-b border-gray-200 text-center">Bin</th>
+                <th class="p-3 border-b border-gray-200 text-center">Location</th>
+                <th class="p-3 border-b border-gray-200 text-center">Status</th>
+                <th class="p-3 border-b border-gray-200 text-center">Submitted By</th>
+            </tr>
+        `;
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+          recyclerMap[name].forEach((item, index) => {
+            const tr = document.createElement("tr");
+            tr.className =
+              index % 2 === 0
+                ? "bg-white hover:bg-blue-50 transition"
+                : "bg-gray-50 hover:bg-blue-50 transition";
+
+            // Get status styling
+            let statusColor = "bg-yellow-100 text-yellow-700";
+            if (item.status === "Approved")
+              statusColor = "bg-green-100 text-green-700";
+            if (item.status === "Rejected")
+              statusColor = "bg-red-100 text-red-700";
+            if (item.status === "Submitted")
+              statusColor = "bg-blue-100 text-blue-700";
+
+            tr.innerHTML = `
+                <td class="p-3 border-b border-gray-100 text-center text-gray-700">${item.id}</td>
+                <td class="p-3 border-b border-gray-100 text-center text-gray-700">${item.id}</td>
+                <td class="p-3 border-b border-gray-100 text-center text-gray-700 font-medium">${item.material_type}</td>
+                <td class="p-3 border-b border-gray-100 text-center text-gray-700">${item.weight}</td>
+                <td class="p-3 border-b border-gray-100 text-center text-gray-700">${item.bin_number}</td>
+                <td class="p-3 border-b border-gray-100 text-center text-gray-700">N/A</td>
+                <td class="p-3 border-b border-gray-100 text-center"><span class="${statusColor} px-3 py-1 rounded-full text-xs font-bold ring-1 ring-opacity-20">${item.status}</span></td>
+                <td class="p-3 border-b border-gray-100 text-center text-gray-700">${item.email}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          logsDiv.appendChild(table);
+          container.appendChild(logsDiv);
+        });
+      }
+
+      // Search function by recycler name
+      function searchTable() {
+        const query = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const filtered = Object.keys(recyclerMap).filter((name) =>
+          name.toLowerCase().includes(query),
+        );
+        renderDashboard(filtered);
+      }
+
+      async function loadLeaderboard() {
+        try {
+          console.log("Loading Leaderboard from API...");
+
+          // Fetch leaderboard data from the API (MySQL database)
+          const response = await fetch("/api/leaderboard");
+          const leaderboardData = await response.json();
+
+          console.log("Leaderboard data:", leaderboardData);
+
+          if (!leaderboardData || leaderboardData.length === 0) {
+            document.getElementById("leaderboard").innerHTML =
+              '<p class="text-gray-500 italic">Leaderboard waiting for submissions...</p>';
+            return;
+          }
+
+          const container = document.getElementById("leaderboard");
+          container.innerHTML = "";
+
+          // Render Top 5
+          leaderboardData.slice(0, 5).forEach((user, index) => {
+            const rank = index + 1;
+            let rankClasses = "border-gray-300";
+            let rankTextClasses = "text-gray-400";
+            let scaleClass = "";
+
+            if (rank === 1) {
+              rankClasses = "border-yellow-400 ring-2 ring-yellow-400/20";
+              rankTextClasses = "text-yellow-500";
+              scaleClass = "md:scale-110 z-10";
+            } else if (rank === 2) {
+              rankClasses = "border-gray-400";
+              rankTextClasses = "text-gray-500";
+            } else if (rank === 3) {
+              rankClasses = "border-orange-600";
+              rankTextClasses = "text-orange-700";
+            }
+
+            const card = document.createElement("div");
+            card.className = `bg-white p-5 rounded-xl w-48 text-center shadow-lg border-t-4 mb-2 flex flex-col items-center justify-center transform transition hover:-translate-y-1 ${rankClasses} ${scaleClass}`;
+
+            card.innerHTML = `
+                    <div class="text-3xl font-bold mb-2 ${rankTextClasses}">#${rank}</div>
+                    <span class="font-bold block mb-1 text-gray-700 text-lg">${user.recycler_name}</span>
+                    <span class="text-green-600 font-bold bg-green-50 px-2 py-1 rounded text-sm">${user.total_weight} kg</span>
+                `;
+            container.appendChild(card);
+          });
+        } catch (e) {
+          console.error("Leaderboard error", e);
+        }
+      }
+
+      loadLeaderboard();
+      loadDashboard();
+    </script>
+  </body>
+</html>

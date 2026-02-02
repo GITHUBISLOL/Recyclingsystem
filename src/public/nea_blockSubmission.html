@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Approved Bins – Submit to Blockchain</title>
+
+<!-- Ethers.js -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  /* Custom scrollbar for tables if needed */
+  .table-container::-webkit-scrollbar {
+    height: 8px;
+  }
+  .table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  .table-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  .table-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+</style>
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+<!-- Navbar -->
+<nav class="bg-slate-900 shadow-lg text-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16 items-center">
+      <div class="flex-shrink-0 flex items-center gap-2">
+        <span class="text-2xl">♻</span>
+        <span class="font-bold text-xl tracking-tight">NEA Portal</span>
+      </div>
+      <div class="hidden md:block">
+        <ul class="flex space-x-6">
+          <li><a href="/nea/dashboard" class="hover:text-emerald-400 transition-colors font-medium">Dashboard</a></li>
+          <li><a href="/nea/recyclers" class="hover:text-emerald-400 transition-colors font-medium">Recycler management</a></li>
+          <li><a href="/nea/binlog" class="hover:text-emerald-400 transition-colors font-medium">Bin Log</a></li>
+          <li><a href="/public_dashboard.html" class="hover:text-emerald-400 transition-colors font-medium">Rankings</a></li>
+          <li><a href="/nea/blockSubmission" class="text-emerald-400 font-bold border-b-2 border-emerald-400 pb-1">Submit to Blockchain</a></li>
+          <li><a href="/nea/redemptions" class="hover:text-emerald-400 transition-colors font-medium">Payouts</a></li>
+          <li><a href="javascript:logout()" class="hover:text-red-400 transition-colors font-medium">Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<script>
+    function logout() {
+        fetch("/nea/logout", { method: "POST" }).then(() => {
+             // Clear cache headers logic handled by backend
+             window.location.replace("/index.html"); 
+        });
+    }
+</script>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  
+  <!-- Wallet Connection Box -->
+  <div class="bg-gradient-to-r from-teal-600 to-emerald-700 rounded-xl shadow-xl p-6 mb-8 text-white flex flex-col md:flex-row justify-between items-center gap-4">
+    <div class="flex items-center gap-3">
+      <div class="p-3 bg-white/10 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold opacity-90">Wallet Status</h2>
+        <div id="mmStatus" class="text-xl font-bold truncate max-w-md">❌ Blockchain not connected</div>
+        <div id="contractAddressDisplay" class="text-sm font-mono opacity-75 mt-1 select-all">Loading Contract Address...</div>
+      </div>
+    </div>
+    <button id="mmBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed border border-orange-400">
+      Connect Blockchain
+    </button>
+    <button id="disconnectBtn" onclick="disconnectWallet()" style="display:none;" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg">
+        Disconnect
+    </button>
+  </div>
+
+  <!-- Action Section -->
+  <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4 border-b border-gray-200 pb-6">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Approved Bins</h1>
+      <p class="text-gray-500 mt-1">Review and submit bin data to the blockchain ledger.</p>
+    </div>
+    <div class="flex items-center gap-6">
+       <div id="tally" class="font-semibold text-lg text-slate-700 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+          Submitted: 0 / 0
+       </div>
+       <button id="submitAllBtn" disabled class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition transform hover:-translate-y-1 active:translate-y-0 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none">
+          Submit All Batch
+       </button>
+    </div>
+  </div>
+
+  <!-- Approved Bins Table -->
+  <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 mb-10">
+    <div class="bg-slate-50 px-6 py-4 border-b border-gray-200">
+       <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+         <span class="w-3 h-3 bg-yellow-400 rounded-full inline-block"></span>
+         Pending Submission
+       </h3>
+    </div>
+    <div class="overflow-x-auto table-container">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-slate-800 text-white">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">ID</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Recycler</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Material</th>
+            <th scope="col" class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider">Weight (kg)</th>
+            <th scope="col" class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider">Bin #</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Location</th>
+            <th scope="col" class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider">Action</th>
+          </tr>
+        </thead>
+        <tbody id="approvedBinTable" class="bg-white divide-y divide-gray-200">
+           <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Submitted Bins Table -->
+  <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 opacity-90">
+    <div class="bg-slate-50 px-6 py-4 border-b border-gray-200">
+      <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+        <span class="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
+        Submitted History
+      </h3>
+    </div>
+    <div class="overflow-x-auto table-container max-h-96">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-slate-700 text-white sticky top-0 z-10">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">ID</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Recycler</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Material</th>
+            <th scope="col" class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider">Weight (kg)</th>
+            <th scope="col" class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider">Bin #</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Location</th>
+          </tr>
+        </thead>
+        <tbody id="submittedBinTable" class="bg-white divide-y divide-gray-200">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const binLocations = { 1: "Orchard", 2: "Tampines", 3: "Jurong", 4: "Bedok" };
+let CONTRACT_ADDRESS;
+let CONTRACT_ABI;
+
+let approvedBins = [];
+let submittedBins = [];
+
+// Init Contract Config
+async function loadContractConfig() {
+    try {
+        const res = await fetch('/api/contract');
+        const data = await res.json();
+        if (data.address && data.abi) {
+            CONTRACT_ADDRESS = data.address;
+            CONTRACT_ABI = data.abi;
+            console.log("Contract loaded:", CONTRACT_ADDRESS);
+
+            const displayEl = document.getElementById("contractAddressDisplay");
+
+            // Try to fetch the Owner Account from the blockchain (Read-Only)
+            try {
+                const tempProvider = new ethers.JsonRpcProvider("http://127.0.0.1:7545");
+                const tempContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, tempProvider);
+                const ownerAddress = await tempContract.NEA();
+                
+                if(displayEl) {
+                    displayEl.innerText = "Required Admin Account: " + ownerAddress;
+                    displayEl.classList.remove("opacity-75");
+                    displayEl.classList.add("text-blue-600", "font-bold");
+                }
+            } catch (err) {
+                 console.warn("Could not fetch owner via RPC:", err);
+                 // Fallback to contract address if RPC fails
+                 if(displayEl) displayEl.innerText = "Contract: " + CONTRACT_ADDRESS;
+            }
+        } else {
+            console.error("Could not load contract config");
+        }
+    } catch (e) { console.error(e); }
+}
+
+// Connect blockchain
+async function connectWallet() {
+  const statusDiv = document.getElementById("mmStatus");
+  const mmBtn = document.getElementById("mmBtn");
+
+  if (!window.ethereum) { 
+      statusDiv.innerText = "MetaMask not installed!"; 
+      return; 
+  }
+
+  if (typeof ethers === 'undefined') {
+      alert("Ethers.js library not loaded. Please check your internet connection.");
+      return;
+  }
+
+  try {
+    // Force MetaMask popup to allow account selection
+    await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }]
+    });
+
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+    // Switch to Ganache Network programmatically
+    try {
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x539' }], // Hex for 1337 (Ganache default)
+        });
+    } catch (switchError) {
+        // This error code indicates that the chain has not been added to MetaMask.
+        if (switchError.code === 4902) {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [
+                        {
+                            chainId: '0x539', // 1337
+                            chainName: 'Ganache Local',
+                            rpcUrls: ['http://127.0.0.1:7545'],
+                            nativeCurrency: {
+                                name: 'ETH',
+                                symbol: 'ETH',
+                                decimals: 18
+                            }
+                        },
+                    ],
+                });
+            } catch (addError) {
+                console.error("Failed to add Ganache network", addError);
+            }
+        } else {
+             console.error("Failed to switch network", switchError);
+        }
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+    window.contract = contract;
+    window.signer = signer;
+
+    // Check if connected account is NEA
+    try {
+        const contractOwner = await contract.NEA();
+        const connectedAddress = accounts[0];
+        
+        console.log("Contract Owner:", contractOwner);
+        console.log("Connected:", connectedAddress);
+
+        if (contractOwner.toLowerCase() !== connectedAddress.toLowerCase()) {
+            const warningMsg = `⚠️ WRONG ACCOUNT DETECTED!
+            
+Required: ${contractOwner}
+Connected: ${connectedAddress}
+
+The transaction WILL FAIL because you are not the NEA admin.
+Please switch MetaMask to the account that created the contract (likely Account 1).`;
+            
+            alert(warningMsg);
+            statusDiv.innerText = "❌ Wrang Account (Not NEA)";
+            statusDiv.classList.add("text-red-300");
+            return; // Don't enable buttons
+        }
+    } catch (checkErr) {
+        console.error("Failed to verify NEA ownership", checkErr);
+    }
+    
+    // update global state
+    window.metamaskConnected = true;
+    window.userWalletAddress = accounts[0];
+
+    // Show Disconnect, Hide Connect or Change State
+    const disconnectBtn = document.getElementById("disconnectBtn");
+    disconnectBtn.style.display = 'block';
+    
+    statusDiv.innerText = `✅ ${accounts[0].slice(0, 10)}...`;
+    statusDiv.classList.remove("text-red-300");
+
+    mmBtn.innerText = "Connected";
+    mmBtn.classList.remove("bg-orange-500", "hover:bg-orange-600");
+    mmBtn.classList.add("bg-green-600", "cursor-default");
+    enableSubmitButtons();
+    renderTables(); // Re-render to update button states if needed
+  } catch(err) { 
+    statusDiv.innerText = `Error: ${err.message}`; 
+    console.error(err);
+  }
+}
+
+// Enable submit buttons
+function enableSubmitButtons() {
+  // Update class for submit buttons if needed, though they are dynamically generated
+  document.getElementById("submitAllBtn").disabled = false;
+  
+  // Re-enable existing dynamic buttons if they were disabled
+  const actionBtns = document.querySelectorAll("button[data-action='submit-single']");
+  actionBtns.forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove("opacity-50", "cursor-not-allowed");
+    btn.classList.add("hover:bg-emerald-700", "hover:shadow-md");
+  });
+}
+
+// Load bins from backend
+async function loadBins() {
+  try {
+    const res = await fetch("/api/getBins", { credentials: "include" });
+    const data = await res.json();
+
+    approvedBins = data.filter(b => b.status === "Approved");
+    submittedBins = data.filter(b => b.status === "Submitted");
+
+    renderTables();
+  } catch(e) {
+    console.error("Failed to load bins", e);
+  }
+}
+
+// Render tables
+function renderTables() {
+  const approvedTbody = document.getElementById("approvedBinTable");
+  const submittedTbody = document.getElementById("submittedBinTable");
+  approvedTbody.innerHTML = "";
+  submittedTbody.innerHTML = "";
+
+  if (approvedBins.length === 0) {
+    approvedTbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-gray-400 italic">No approved bins pending submission.</td></tr>`;
+  }
+
+  approvedBins.forEach(bin => {
+    const tr = document.createElement("tr");
+    tr.className = "hover:bg-sky-50 transition-colors duration-150";
+    
+    // Injecting Tailwind classes into Cells
+    tr.innerHTML = `
+      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${bin.id}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-semibold">${bin.recycler_name}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+          ${bin.material_type}
+        </span>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">${bin.weight}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">${bin.bin_number}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${binLocations[bin.bin_number] || "Unknown"}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium"></td>
+    `;
+    
+    // Create button dynamically to attach event listener
+    const btn = document.createElement("button");
+    btn.innerText = "Write to Chain";
+    btn.setAttribute("data-action", "submit-single");
+    
+    // Base classes
+    let btnClasses = ["bg-emerald-600", "text-white", "font-bold", "py-1.5", "px-3", "rounded", "text-xs", "shadow-sm", "transition", "duration-200"];
+    
+    if (!window.metamaskConnected) {
+        btn.disabled = true;
+        btnClasses.push("opacity-50", "cursor-not-allowed");
+    } else {
+        btnClasses.push("hover:bg-emerald-700", "hover:shadow-md");
+    }
+    
+    btn.className = btnClasses.join(" ");
+    
+    btn.onclick = () => submitBin(bin);
+    tr.lastElementChild.appendChild(btn);
+    approvedTbody.appendChild(tr);
+  });
+
+  if (submittedBins.length === 0) {
+    submittedTbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-gray-400 italic">No bins submitted yet.</td></tr>`;
+  }
+
+  submittedBins.forEach(bin => {
+    const tr = document.createElement("tr");
+    tr.className = "even:bg-gray-50 hover:bg-gray-100";
+    tr.innerHTML = `
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#${bin.id}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${bin.recycler_name}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bin.material_type}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">${bin.weight}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">${bin.bin_number}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${binLocations[bin.bin_number] || "Unknown"}</td>
+    `;
+    submittedTbody.appendChild(tr);
+  });
+
+  updateTally();
+}
+
+// Submit single bin
+async function submitBin(bin) {
+  if (!window.metamaskConnected) { alert("Connect blockchain first"); return; }
+
+  let stage = "chain";
+
+  try {
+    // 1. Write to Blockchain
+    const weightInt = Math.floor(bin.weight); // Contract expects uint256
+    const tx = await window.contract.registerItem(
+        bin.recycler_name,
+        bin.material_type,
+        weightInt,
+        bin.bin_number
+    );
+
+    // Show status
+    const originalText = document.getElementById("mmStatus").innerText;
+    document.getElementById("mmStatus").innerText = "⏳ Mining... " + tx.hash.slice(0,10);
+    
+    await tx.wait();
+    document.getElementById("mmStatus").innerText = originalText;
+
+    stage = "backend";
+
+    // 2. Call Backend (which now awards points)
+    const res = await fetch("/api/submitBin", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({binId: bin.id})
+    });
+    
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || "Backend Error " + res.status);
+    }
+
+    approvedBins = approvedBins.filter(b => b.id !== bin.id);
+    submittedBins.push({...bin, status:"Submitted"});
+    renderTables();
+  } catch(err) { 
+      console.error(err);
+      
+      if (stage === "backend") {
+          const doRetry = confirm("✅ Blockchain Transaction Successful!\n❌ Backend Database Update Failed.\n\nDo you want to retry the Database Update ONLY? (No Gas Cost)");
+          if (doRetry) {
+              await submitBackendOnly(bin);
+              return;
+          }
+      } else {
+          alert("Submission Error: " + (err.reason || err.message)); 
+      }
+      document.getElementById("mmStatus").innerText = "❌ Transaction Failed";
+  }
+}
+
+async function submitBackendOnly(bin) {
+    try {
+        const res = await fetch("/api/submitBin", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({binId: bin.id})
+        });
+        
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.message || "Backend Error " + res.status);
+        }
+
+        approvedBins = approvedBins.filter(b => b.id !== bin.id);
+        submittedBins.push({...bin, status:"Submitted"});
+        renderTables();
+        alert("Success! Database synced and points awarded.");
+        document.getElementById("mmStatus").innerText = "✅ Synced";
+    } catch(e) {
+        alert("Retry Failed: " + e.message + "\n\nPlease ensure your Node.js server is running.");
+    }
+}
+
+function disconnectWallet() {
+    window.userWalletAddress = null;
+    window.metamaskConnected = false;
+    window.contract = null;
+    window.signer = null;
+    
+    document.getElementById("mmStatus").innerText = "❌ Blockchain not connected";
+    const btn = document.getElementById("mmBtn");
+    btn.disabled = false;
+    btn.innerText = "Connect Blockchain";
+    btn.classList.remove("bg-green-600", "cursor-default");
+    btn.classList.add("bg-orange-500", "hover:bg-orange-600");
+    // btn.onclick = connectWallet; // Listener persists
+    
+    document.getElementById("contractAddressDisplay").style.display = 'none';
+
+    // Disable grid buttons again
+    const actionBtns = document.querySelectorAll("button[data-action='submit-single']");
+    actionBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add("opacity-50", "cursor-not-allowed");
+    });
+}
+
+// Submit all
+document.getElementById("submitAllBtn").onclick = async () => {
+    const btn = document.getElementById("submitAllBtn");
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+    
+    for (const bin of [...approvedBins]) { 
+      try {
+          // Important: We must await EACH submission to ensure sequence
+          // and proper point awarding for each.
+          await submitBin(bin); 
+          
+          // Small delay to prevent nonce issues if user clicks too fast
+          await new Promise(r => setTimeout(r, 1000));
+
+      } catch (e) {
+          console.error("Batch failure at bin " + bin.id, e);
+          break; // Stop on error
+      }
+    }
+    
+    btn.disabled = false;
+    btn.innerText = "Submit All Batch";
+}
+
+// Update tally
+function updateTally() {
+  const total = approvedBins.length + submittedBins.length;
+  document.getElementById("tally").innerText =
+    `Submitted: ${submittedBins.length} / ${total}`;
+}
+
+// Initial load
+document.getElementById("mmBtn").addEventListener("click", connectWallet);
+loadContractConfig().then(loadBins);
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEA Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg max-w-sm w-full">
+      <h1 class="text-2xl font-bold text-center text-indigo-600 mb-6">
+        NEA Login
+      </h1>
+
+      <form id="neaLoginForm" class="space-y-6">
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700"
+            >Username</label
+          >
+          <input
+            type="text"
+            id="username"
+            required
+            placeholder="Username"
+            class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700"
+            >Password</label
+          >
+          <input
+            type="password"
+            id="password"
+            required
+            placeholder="Password"
+            class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+
+        <div>
+          <button
+            type="submit"
+            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Login
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      console.log("NEA login JS loaded");
+
+      const form = document.getElementById("neaLoginForm");
+      const submitBtn = form.querySelector("button[type='submit']");
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        console.log("Form submitted");
+
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        console.log("Attempting login with username:", username);
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Logging in...";
+
+        try {
+          const res = await fetch("/nea/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+
+          console.log("Response status:", res.status);
+          const data = await res.json();
+          console.log("Response data:", data);
+
+          if (data.success) {
+            console.log("Login successful, redirecting...");
+            window.location.href = "/nea/dashboard";
+          } else {
+            alert(data.message || "Login failed");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Login";
+          }
+        } catch (err) {
+          console.error("Login error:", err);
+          alert("Server error: " + err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Login";
+        }
+      });
+    </script>
+  </body>
+</html>

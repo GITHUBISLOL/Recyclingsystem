@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recycler Management - NEA Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        teal: {
+                            600: '#0d9488',
+                            700: '#0f766e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+    <!-- Navbar -->
+    <nav class="bg-slate-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="text-teal-400 font-bold text-xl">NEA Portal</span>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="/nea/dashboard" class="text-slate-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                            <a href="/nea/recyclers" class="bg-slate-900 text-white px-3 py-2 rounded-md text-sm font-medium" aria-current="page">Recycler Management</a>
+                            <a href="/nea/binlog" class="text-slate-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Bin Log</a>
+                            <a href="/nea/blockSubmission" class="text-slate-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Submit to Blockchain</a>
+                            <a href="/nea/redemptions" class="text-slate-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Payouts</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-4 flex items-center md:ml-6">
+                        <a href="/index.html" class="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Logout</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <!-- Mobile menu button -->
+                    <button type="button" class="inline-flex items-center justify-center rounded-md bg-slate-800 p-2 text-slate-400 hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-slate-800" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        
+        <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="min-w-0 flex-1">
+                <h1 class="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight">Recycler Management</h1>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            
+            <!-- Left Column: Add Recycler Form -->
+            <div class="lg:col-span-1">
+                <div class="bg-white shadow sm:rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900">Add New Recycler</h3>
+                        <div class="mt-2 max-w-xl text-sm text-gray-500">
+                            <p>Register a new recycler account with credentials.</p>
+                        </div>
+                        <form id="addRecyclerForm" class="mt-5 space-y-4">
+                            <div>
+                                <label for="username" class="block text-sm font-medium leading-6 text-gray-900">Username</label>
+                                <div class="mt-2">
+                                    <input type="text" name="username" id="username" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm sm:leading-6" placeholder="Username">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="password" class="block text-sm font-medium leading-6 text-gray-900">Password</label>
+                                <div class="mt-2">
+                                    <input type="password" name="password" id="password" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm sm:leading-6" placeholder="Password">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email</label>
+                                <div class="mt-2">
+                                    <input type="email" name="email" id="email" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm sm:leading-6" placeholder="Email (Optional)">
+                                </div>
+                            </div>
+                            <div class="pt-2">
+                                <button type="submit" class="w-full flex justify-center rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600">Add Recycler</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Recycler List Table -->
+            <div class="lg:col-span-2">
+                <div class="bg-white shadow ring-1 ring-gray-300 sm:rounded-lg overflow-hidden">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900">Registered Recyclers</h3>
+                    </div>
+                    <div class="flow-root">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-300" id="recyclerTable">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">ID</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Username</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created At</th>
+                                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                                            <span class="sr-only">Action</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 bg-white">
+                                    <!-- Rows generated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+      async function fetchRecyclers() {
+        const res = await fetch("/recycler_management/list");
+        const data = await res.json();
+        const tbody = document.querySelector("#recyclerTable tbody");
+        tbody.innerHTML = "";
+        if (data.success) {
+          data.recyclers.forEach((r) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">${r.id}</td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${r.username}</td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${r.email || ""}</td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${new Date(r.created_at).toLocaleString()}</td>
+                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                    <button onclick="deleteRecycler(${r.id})" class="text-red-600 hover:text-red-900 font-semibold transition-colors duration-200">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      }
+
+      document
+        .getElementById("addRecyclerForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+          const email = document.getElementById("email").value;
+
+          const res = await fetch("/recycler_management/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password, email }),
+          });
+          const data = await res.json();
+          alert(data.message);
+          if (data.success) {
+            fetchRecyclers();
+            e.target.reset();
+          }
+        });
+
+      async function deleteRecycler(id) {
+        if (!confirm("Are you sure you want to delete this recycler?")) return;
+        const res = await fetch(`/recycler_management/delete/${id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json();
+        alert(data.message);
+        if (data.success) fetchRecyclers();
+      }
+
+      function logout() {
+        fetch("/nea/logout", { method: "POST" }).then(() => {
+          window.location.href = "/nea/login";
+        });
+      }
+
+      fetchRecyclers();
+    </script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process Payouts - NEA Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen">
+
+    <!-- Navbar -->
+    <nav class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center gap-3">
+                    <i class="fas fa-leaf text-green-500 text-2xl"></i>
+                    <span class="font-bold text-xl text-white tracking-tight">NEA Portal</span>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="/nea/dashboard" class="text-slate-300 hover:bg-slate-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="/nea/recyclers" class="text-slate-300 hover:bg-slate-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Recyclers</a>
+                        <a href="/nea/binlog" class="text-slate-300 hover:bg-slate-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Bin Log</a>
+                        <a href="/nea/blockSubmission" class="text-slate-300 hover:bg-slate-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Block Submission</a>
+                        <a href="/nea/redemptions" class="bg-slate-800 text-white px-3 py-2 rounded-md text-sm font-medium border border-slate-700">Payouts</a>
+                        <a href="javascript:logout()" class="text-red-400 hover:bg-red-900/30 hover:text-red-300 px-3 py-2 rounded-md text-sm font-medium transition-colors ml-4">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold leading-tight text-slate-900">Redemption Requests</h1>
+                <p class="mt-2 text-sm text-slate-500">Review pending eco-point redemptions and process ETH payments.</p>
+            </div>
+            
+            <div class="flex items-center gap-4 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200">
+                <div id="mmStatus" class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                    <span class="text-sm font-medium text-slate-600">Wallet Disconnected</span>
+                </div>
+                <button id="mmBtn" onclick="connectWallet()" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2 px-4 rounded transition-colors uppercase tracking-wide">
+                    Connect Wallet
+                </button>
+                <button id="disconnectBtn" onclick="disconnectWallet()" class="hidden bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-2 px-4 rounded transition-colors uppercase tracking-wide">
+                    Disconnect
+                </button>
+            </div>
+        </div>
+
+        <!-- Requests Table -->
+        <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-slate-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Recycler</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Points</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ETH Amount</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Wallet Address</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Requested At</th>
+                            <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestsTable" class="bg-white divide-y divide-slate-200">
+                        <!-- JS Injection -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-16 text-slate-400">
+                <i class="fas fa-check-circle text-4xl mb-3 text-slate-300"></i>
+                <p>No pending payout requests.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+    // Global state
+    window.signer = null;
+    window.provider = null;
+
+    async function loadRequests() {
+        try {
+            const res = await fetch('/api/redemptionRequests');
+            const data = await res.json();
+            const tbody = document.getElementById("requestsTable");
+            const empty = document.getElementById("emptyState");
+
+            tbody.innerHTML = "";
+            
+            if (data.requests.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            data.requests.forEach(r => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">#${r.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${r.recycler_username}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">${r.points_deducted} pts</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 font-bold font-mono">${r.eth_amount} ETH</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-400 font-mono tracking-tighter cursor-pointer hover:text-blue-500" title="${r.wallet_address}" onclick="navigator.clipboard.writeText('${r.wallet_address}'); alert('Copied address!')">${r.wallet_address.substring(0,10)}...${r.wallet_address.substring(34)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-400">${new Date(r.created_at).toLocaleDateString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="payUser(${r.id}, '${r.eth_amount}', '${r.wallet_address}')" 
+                                class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-md text-xs font-bold transition shadow-sm hover:shadow active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                            PAY ETH
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    async function connectWallet() {
+        const statusDiv = document.getElementById("mmStatus");
+        const mmBtn = document.getElementById("mmBtn");
+
+        if (!window.ethereum) { 
+            alert("MetaMask not installed!"); 
+            return; 
+        }
+
+        try {
+            // Force MetaMask popup to allow account selection
+            await window.ethereum.request({
+                method: "wallet_requestPermissions",
+                params: [{ eth_accounts: {} }]
+            });
+
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            // Switch to Ganache Network programmatically
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x539' }], // Hex for 1337 (Ganache default)
+                });
+            } catch (switchError) {
+                // This error code indicates that the chain has not been added to MetaMask.
+                if (switchError.code === 4902) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [
+                                {
+                                    chainId: '0x539', // 1337
+                                    chainName: 'Ganache Local',
+                                    rpcUrls: ['http://127.0.0.1:7545'],
+                                    nativeCurrency: {
+                                        name: 'ETH',
+                                        symbol: 'ETH',
+                                        decimals: 18
+                                    }
+                                },
+                            ],
+                        });
+                    } catch (addError) {
+                        console.error("Failed to add Ganache network", addError);
+                    }
+                } else {
+                    console.error("Failed to switch network", switchError);
+                }
+            }
+
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            window.signer = await provider.getSigner();
+            const address = await window.signer.getAddress();
+
+            // UI Updates
+            statusDiv.innerHTML = `
+                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span class="text-sm font-bold text-slate-700 font-mono">${address.substring(0,8)}...</span>
+            `;
+
+            mmBtn.innerText = "Connected";
+            mmBtn.classList.remove("bg-orange-500", "hover:bg-orange-600");
+            mmBtn.classList.add("bg-green-600", "cursor-default", "hidden"); // Hide connect, show disconnect
+            
+            // Or show button as status? Block submission does this:
+            // mmBtn.classList.add("bg-green-600", "cursor-default"); 
+            // disconnectBtn.style.display = 'block';
+
+            // Let's actually hide the connect button and show the disconnect button to be cleaner
+             mmBtn.style.display = 'none';
+             document.getElementById("disconnectBtn").classList.remove("hidden");
+
+        } catch(e) { console.error(e); }
+    }
+
+    function disconnectWallet() {
+        window.signer = null;
+        
+        const statusDiv = document.getElementById("mmStatus");
+        const mmBtn = document.getElementById("mmBtn");
+        
+        statusDiv.innerHTML = `
+            <div class="w-2 h-2 rounded-full bg-red-500"></div>
+            <span class="text-sm font-medium text-slate-600">Wallet Disconnected</span>
+        `;
+        
+        mmBtn.innerText = "Connect Wallet";
+        mmBtn.classList.remove("bg-green-600", "cursor-default", "hidden");
+        mmBtn.classList.add("bg-orange-500", "hover:bg-orange-600");
+        mmBtn.style.display = 'block';
+
+        document.getElementById("disconnectBtn").classList.add("hidden");
+    }
+
+    async function payUser(id, amount, toAddress) {
+        if(!window.signer) {
+            alert("Please connect wallet first to pay!");
+            return;
+        }
+        
+        if(!confirm(`Send ${amount} ETH to ${toAddress}?`)) return;
+
+        try {
+            const tx = await window.signer.sendTransaction({
+                to: toAddress,
+                value: ethers.parseEther(amount.toString()) 
+            });
+            
+            alert("Transaction Sent! hash: " + tx.hash);
+
+            // Inform backend
+            await fetch('/api/confirmPayment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requestId: id, txHash: tx.hash })
+            });
+
+            loadRequests(); // Refresh table
+        } catch(e) {
+            console.error(e);
+            alert("Payment Failed: " + (e.reason || e.message));
+        }
+    }
+
+    // Auto-check connection if possible (optional, but requested "like the rest", and block submission doesn't seem to have auto-connect on load in the snippet I saw, but recycler does with localStorage. I'll stick to manual connect to match the manual trigger flow of blockSubmission more closely but allow reconnecting if previously authorized).
+    // Actually BlockSubmission does NOT seem to have auto-connect on page load in the snippet I read. It waits for click.
+    // Recycler DOES have localStorage check.
+    // Since this is NEA admin, safer to require click.
+    
+    function logout() {
+        disconnectWallet();
+        fetch("/nea/logout", { method: "POST" }).then(() => (window.location.href = "/"));
+    }
+
+    window.onload = loadRequests;
+    </script>
+</body>
+</html>

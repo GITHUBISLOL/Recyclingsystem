@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Recycler Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  </head>
+  <body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <nav class="bg-slate-800 text-white shadow-lg sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center">
+             <i class="fas fa-recycle text-green-400 text-2xl mr-2"></i>
+             <span class="font-bold text-xl">Recycler Portal</span>
+          </div>
+          <div class="hidden md:block">
+            <div class="ml-10 flex items-baseline space-x-4">
+              <a onclick="showSection('addBin')" class="cursor-pointer hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium transition-colors">Add Bin</a>
+              <a onclick="showSection('binLog'); loadBinLog();" class="cursor-pointer hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium transition-colors">Bin Log</a>
+              <a onclick="logout()" class="cursor-pointer bg-red-600 hover:bg-red-700 px-3 py-2 rounded-md text-sm font-medium transition-colors">Logout</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      
+      <!-- ===== Add Bin Section ===== -->
+      <section id="addBin" class="animate-fade-in">
+        
+        <!-- Header & Wallet -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div>
+              <h1 class="text-2xl font-bold text-slate-700">Add Bin Details</h1>
+              <div class="mt-2 inline-block bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded-full font-semibold border border-yellow-200">
+                  🌱 Eco-Points: <span id="pointsDisplay">0</span>
+                  <button onclick="openRedeemModal()" class="ml-2 bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-0.5 rounded text-xs transition">Redeem</button>
+              </div>
+          </div>
+          
+          <div class="bg-gradient-to-r from-teal-500 to-teal-600 text-white px-4 py-2 rounded-lg shadow-md flex items-center gap-4">
+            <div id="mmStatus" class="font-medium text-sm">❌ Blockchain not connected</div>
+            <button id="mmBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold uppercase tracking-wide transition-colors shadow">
+              Connect
+            </button>
+            <button id="disconnectBtn" onclick="disconnectWallet()" class="hidden bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold uppercase tracking-wide transition-colors shadow">
+              Disconnect
+            </button>
+          </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+          <form id="binForm">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
+              <div class="relative">
+                <label class="block text-sm font-medium text-slate-500 mb-1">Recycler Name</label>
+                <input id="recyclerName" readonly class="w-full bg-slate-100 border border-slate-300 rounded-lg p-2.5 text-slate-500 focus:outline-none" />
+              </div>
+              
+              <div class="relative">
+                <label class="block text-sm font-medium text-slate-500 mb-1">Email</label>
+                <input id="recyclerEmail" readonly class="w-full bg-slate-100 border border-slate-300 rounded-lg p-2.5 text-slate-500 focus:outline-none" />
+              </div>
+
+              <div class="relative">
+                 <label class="block text-sm font-medium text-slate-700 mb-1">Material Type</label>
+                 <select id="materialType" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-700 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none transition-all">
+                  <option value="">Select Material</option>
+                  <option>Plastic</option>
+                  <option>Metal</option>
+                  <option>Paper</option>
+                  <option>Glass</option>
+                </select>
+              </div>
+
+              <div class="relative">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Weight (kg)</label>
+                <input type="number" id="weight" placeholder="0.0" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-700 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none transition-all" />
+              </div>
+
+              <div class="relative">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Bin Number</label>
+                <div class="flex gap-2">
+                    <input type="number" id="binNumber" placeholder="#" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-700 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none transition-all" />
+                    <button type="button" onclick="simulateQR()" class="bg-blue-500 hover:bg-blue-600 text-white p-2.5 rounded-lg transition-colors shadow-md" title="Scan QR Code">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+              </div>
+
+              <div class="relative">
+                <label class="block text-sm font-medium text-slate-500 mb-1">Location</label>
+                <input id="binLocation" readonly placeholder="Auto-filled" class="w-full bg-slate-100 border border-slate-300 rounded-lg p-2.5 text-slate-500 focus:outline-none" />
+              </div>
+
+            </div>
+            
+            <div class="mt-8 flex justify-end">
+                <button type="submit" id="previewBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform hover:-translate-y-0.5 transition-all">
+                    Preview Submission
+                </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Preview Modal/Box -->
+        <div id="previewBox" class="hidden bg-white rounded-xl shadow-2xl p-8 border border-green-100 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Confirm Details</h3>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-sm">
+                <div class="bg-slate-50 p-3 rounded-lg"><span class="block text-xs text-slate-400 uppercase">Recycler</span><span id="previewRecyclerNameWrapper" class="font-semibold"></span></div>
+                <div class="bg-slate-50 p-3 rounded-lg"><span class="block text-xs text-slate-400 uppercase">Email</span><span id="previewEmailWrapper" class="font-semibold truncate"></span></div>
+                <div class="bg-slate-50 p-3 rounded-lg"><span class="block text-xs text-slate-400 uppercase">Material</span><span id="previewMaterialTypeWrapper" class="font-semibold text-green-600"></span></div>
+                <div class="bg-slate-50 p-3 rounded-lg"><span class="block text-xs text-slate-400 uppercase">Weight</span><span id="previewWeightWrapper" class="font-semibold"></span> kg</div>
+                <div class="bg-slate-50 p-3 rounded-lg"><span class="block text-xs text-slate-400 uppercase">Bin #</span><span id="previewBinNumberWrapper" class="font-semibold"></span></div>
+                <div class="bg-slate-50 p-3 rounded-lg"><span class="block text-xs text-slate-400 uppercase">Location</span><span id="previewLocationWrapper" class="font-semibold"></span></div>
+                
+                <!-- Hidden inputs for submission logic continuity -->
+                <input id="previewRecyclerName" type="hidden">
+                <input id="previewEmail" type="hidden">
+                <input id="previewMaterialType" type="hidden">
+                <input id="previewWeight" type="hidden">
+                <input id="previewBinNumber" type="hidden">
+                <input id="previewLocation" type="hidden">
+            </div>
+
+            <div class="flex gap-4">
+                <button id="submitBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg shadow-md transition-all">
+                    Confirm & Submit
+                </button>
+                <button onclick="editAgain()" class="px-6 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg transition-all">
+                    Edit
+                </button>
+            </div>
+        </div>
+      </section>
+
+      <!-- ===== Bin Log Section ===== -->
+      <section id="binLog" class="hidden animate-fade-in">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+             <h1 class="text-2xl font-bold text-slate-700">My Recycling History</h1>
+             <button onclick="loadBinLog()" class="text-blue-500 hover:text-blue-700"><i class="fas fa-sync-alt"></i></button>
+          </div>
+          
+          <div class="overflow-x-auto">
+              <table id="binTable" class="w-full text-sm text-left text-slate-600">
+                <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                  <tr>
+                    <th class="px-6 py-4 rounded-tl-lg">ID</th>
+                    <th class="px-6 py-4">Recycler</th>
+                    <th class="px-6 py-4">Email</th>
+                    <th class="px-6 py-4">Material</th>
+                    <th class="px-6 py-4">Weight</th>
+                    <th class="px-6 py-4">Bin</th>
+                    <th class="px-6 py-4">Location</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4 rounded-tr-lg">Created</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <!-- Rows injected here -->
+                </tbody>
+              </table>
+          </div>
+        </div>
+      </section>
+
+    <!-- QR Scan Modal -->
+    <div id="qrModal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm relative transform transition-all">
+            <button onclick="closeQRModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            
+            <h3 id="qrModalTitle" class="text-xl font-bold text-slate-800 mb-1 text-center">Select Nearest Bin</h3>
+            <p id="qrModalSubtitle" class="text-slate-500 text-sm mb-6 text-center">Choose the bin you are standing in front of.</p>
+            
+            <!-- Step 1: Selection -->
+            <div id="qrStep1" class="grid grid-cols-1 gap-3">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Step 2: Scan Simulation -->
+            <div id="qrStep2" class="hidden flex flex-col items-center">
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 relative shadow-inner">
+                    <img id="qrImage" src="" alt="QR Code" class="w-48 h-48 object-contain mix-blend-multiply">
+                    <div class="absolute inset-0 border-4 border-green-500 opacity-50 animate-pulse rounded-xl"></div>
+                    <div class="absolute top-1/2 left-0 w-full h-0.5 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
+                </div>
+                <p class="text-slate-500 mb-6 text-center font-medium">Align QR code within frame...</p>
+                <button id="simulateScanBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
+                    <i class="fas fa-camera mr-2"></i> Capture & Scan
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+      @keyframes scan {
+        0%, 100% { top: 10%; opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        50% { top: 90%; }
+      }
+    </style>
+
+    </div>
+
+    <script>
+      let loggedInName = "",
+        loggedInEmail = "";
+      let metamaskConnected = false,
+        userAddress = "";
+
+      const binLocations = { 1: "Orchard", 2: "Tampines", 3: "Jurong", 4: "Bedok" };
+      const statusColors = {
+        'Pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        'Approved': 'bg-green-100 text-green-800 border-green-200',
+        'Rejected': 'bg-red-100 text-red-800 border-red-200',
+        'Submitted': 'bg-purple-100 text-purple-800 border-purple-200' 
+      };
+
+      function showSection(id) {
+        document.getElementById("addBin").classList.add('hidden');
+        document.getElementById("binLog").classList.add('hidden');
+        document.getElementById(id).classList.remove('hidden');
+      }
+
+      // Session
+      fetch("/api/sessionInfo", { credentials: "include" })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.success) {
+            loggedInName = d.user.username;
+            loggedInEmail = d.user.email;
+            document.getElementById("recyclerName").value = loggedInName;
+            document.getElementById("recyclerEmail").value = loggedInEmail;
+            loadPoints(); // Load points after session is confirmed
+          } else {
+             window.location.href = "/";
+          }
+        });
+
+      // MetaMask
+      async function connectMetaMask() {
+        console.log("Connect MetaMask clicked");
+        if (typeof window.ethereum === 'undefined') {
+            alert("MetaMask is not installed!");
+            return;
+        }
+        
+        try {
+            await window.ethereum.request({
+                method: "wallet_requestPermissions",
+                params: [{ eth_accounts: {} }]
+            });
+
+            const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+            handleAccountsChanged(accounts);
+        } catch (err) { 
+            console.error(err);
+            alert("Failed to connect wallet: " + err.message);
+        }
+      }
+
+      function handleAccountsChanged(accounts) {
+          if (accounts.length === 0) {
+              disconnectWallet();
+          } else {
+              userAddress = accounts[0];
+              metamaskConnected = true;
+              localStorage.setItem("walletConnected", "true");
+              
+              document.getElementById("mmBtn").classList.add("hidden");
+              document.getElementById("disconnectBtn").classList.remove("hidden");
+              document.getElementById("mmStatus").innerText = `✅ ${userAddress.slice(0, 6)}...`;
+          }
+      }
+
+      function disconnectWallet() {
+          userAddress = "";
+          metamaskConnected = false;
+          localStorage.removeItem("walletConnected");
+
+          document.getElementById("mmBtn").classList.remove("hidden");
+          document.getElementById("disconnectBtn").classList.add("hidden");
+          document.getElementById("mmStatus").innerText = "❌ Blockchain not connected";
+      }
+
+      // Explicit disconnect button
+      // document.getElementById("disconnectBtn").onclick = disconnectWallet; // It's in HTML
+
+      document.getElementById("mmBtn").addEventListener("click", connectMetaMask);
+
+      // Auto-fill location
+      document.getElementById("binNumber").addEventListener("input", () => {
+        const bin = parseInt(document.getElementById("binNumber").value);
+        document.getElementById("binLocation").value = binLocations[bin] || "Unknown";
+      });
+
+      // Preview
+      document.getElementById("binForm").onsubmit = (e) => {
+        e.preventDefault();
+        const mat = document.getElementById("materialType").value;
+        const wei = document.getElementById("weight").value;
+        const bin = document.getElementById("binNumber").value;
+        const loc = document.getElementById("binLocation").value;
+
+        // Hidden inputs
+        document.getElementById("previewRecyclerName").value = loggedInName;
+        document.getElementById("previewEmail").value = loggedInEmail;
+        document.getElementById("previewMaterialType").value = mat;
+        document.getElementById("previewWeight").value = wei;
+        document.getElementById("previewBinNumber").value = bin;
+        document.getElementById("previewLocation").value = loc;
+
+        // Visual spans
+        document.getElementById("previewRecyclerNameWrapper").innerText = loggedInName;
+        document.getElementById("previewEmailWrapper").innerText = loggedInEmail;
+        document.getElementById("previewMaterialTypeWrapper").innerText = mat;
+        document.getElementById("previewWeightWrapper").innerText = wei;
+        document.getElementById("previewBinNumberWrapper").innerText = bin;
+        document.getElementById("previewLocationWrapper").innerText = loc;
+
+        document.getElementById("previewBox").classList.remove('hidden');
+      };
+
+      function editAgain() {
+        document.getElementById("previewBox").classList.add('hidden');
+      }
+
+      // Submit
+      document.getElementById("submitBtn").onclick = () => {
+        const btn = document.getElementById("submitBtn");
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "Submitting...";
+
+        fetch("/api/addBin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            material_type: document.getElementById("previewMaterialType").value,
+            weight: document.getElementById("previewWeight").value,
+            bin_number: document.getElementById("previewBinNumber").value,
+          }),
+        })
+        .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Submission failed");
+            alert("Submission Successful!");
+            location.reload();
+        })
+        .catch(err => {
+            alert("Error: " + err.message);
+            btn.disabled = false;
+            btn.innerText = originalText;
+        });
+      };
+
+      // QR Modal Logic
+      function simulateQR() {
+        document.getElementById("qrModal").classList.remove('hidden');
+        document.getElementById("qrStep1").classList.remove('hidden');
+        document.getElementById("qrStep2").classList.add('hidden');
+        document.getElementById("qrModalTitle").innerText = "Select Nearest Bin";
+        document.getElementById("qrModalSubtitle").style.display = "block";
+        
+        const container = document.getElementById("qrStep1");
+        container.innerHTML = Object.entries(binLocations).map(([id, loc]) => `
+            <button onclick="selectBinForScan(${id})" class="flex items-center justify-between w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white p-2 rounded-lg text-slate-500 group-hover:text-blue-500 shadow-sm transition-colors">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="font-bold text-slate-700">Bin #${id}</div>
+                        <div class="text-xs text-slate-500">${loc}</div>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right text-slate-300 group-hover:text-blue-500 transition-colors"></i>
+            </button>
+        `).join('');
+      }
+
+      function closeQRModal() {
+        document.getElementById("qrModal").classList.add('hidden');
+      }
+
+      function selectBinForScan(id) {
+        document.getElementById("qrStep1").classList.add('hidden');
+        document.getElementById("qrStep2").classList.remove('hidden');
+        document.getElementById("qrModalTitle").innerText = "Scan QR Code";
+        document.getElementById("qrModalSubtitle").style.display = "none";
+        
+        // Use a generic QR API for realism
+        document.getElementById("qrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={"binId":${id},"location":"${binLocations[id]}"}`;
+        
+        document.getElementById("simulateScanBtn").onclick = () => {
+             // Simulate "Processing" delay
+            const btn = document.getElementById("simulateScanBtn");
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Verifying...`;
+            
+            setTimeout(() => {
+                document.getElementById("binNumber").value = id;
+                document.getElementById("binNumber").dispatchEvent(new Event('input'));
+                closeQRModal();
+                btn.innerHTML = originalText;
+            }, 800);
+        };
+      }
+
+      // Log
+      function loadBinLog() {
+        fetch("/api/getBins?t=" + Date.now(), { credentials: "include" })
+          .then((r) => r.json())
+          .then((d) => {
+            const tbody = document.getElementById("binTable").querySelector("tbody");
+            tbody.innerHTML = d.map(b => {
+                const colorClass = statusColors[b.status] || 'bg-gray-100 text-gray-800';
+                return `
+                  <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-mono text-xs text-slate-500">#${b.id}</td>
+                    <td class="px-6 py-4 font-medium text-slate-900">${b.recycler_name}</td>
+                    <td class="px-6 py-4 text-slate-500">${b.email}</td>
+                    <td class="px-6 py-4">${b.material_type}</td>
+                    <td class="px-6 py-4">${b.weight} kg</td>
+                    <td class="px-6 py-4">${b.bin_number}</td>
+                    <td class="px-6 py-4 text-slate-500">${binLocations[b.bin_number] || "Unknown"}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClass}">
+                            ${b.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-400 text-xs">${new Date(b.created_at).toLocaleDateString()}</td>
+                  </tr>`;
+            }).join("");
+          });
+      }
+
+      function logout() {
+        disconnectWallet(); // Clear wallet state on logout
+        fetch("/recycler/logout", { method: "POST", credentials: "include" })
+        .then(() => (location.href = "/index.html"));
+      }
+      // Show Points and Load
+      async function loadPoints() {
+          try {
+            const res = await fetch('/api/recyclerPoints');
+            const data = await res.json();
+            const el = document.getElementById('pointsDisplay');
+            if(el) el.innerText = data.points;
+          } catch(e) { console.error("Error loading points", e); }
+      }
+      
+      async function setupWallet() {
+          // Check if we SHOULD auto-connect
+          const shouldConnect = localStorage.getItem("walletConnected") === "true";
+          
+          if (shouldConnect && window.ethereum) {
+             try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                     handleAccountsChanged(accounts);
+                 }
+             } catch(e) { console.warn("Wallet auto-connect failed", e); }
+          }
+      }
+
+      function openRedeemModal() {
+          const points = parseInt(document.getElementById('pointsDisplay').innerText);
+          if (points < 50) { alert("You need at least 50 points to redeem!"); return; }
+          
+          if(!metamaskConnected) { alert("Please connect wallet first!"); return; }
+
+          const claimAmount = Math.floor(points / 50) * 50; 
+          const ethEst = (claimAmount / 50) * 0.0003; 
+          
+          if(confirm(`Redeem ${claimAmount} points for approx ${ethEst} ETH?\n\nWallet: ${userAddress}`)) {
+              fetch('/api/requestRedemption', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ pointsToRedeem: claimAmount, walletAddress: userAddress })
+              }).then(res => res.json())
+                .then(d => {
+                    alert(d.message);
+                    loadPoints();
+                });
+          }
+      }
+
+      // Initial Load
+      setupWallet();
+      loadPoints();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,153 @@
+/* ====== GENERAL ====== */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: #f0f4f8;
+    color: #333;
+}
+
+/* ====== NAVBAR ====== */
+.navbar {
+    background: #2c7a7b;
+    color: white;
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navbar .logo {
+    font-weight: bold;
+    font-size: 1.4rem;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 25px;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.navbar a:hover {
+    color: #d1f0f0;
+}
+
+.navbar a.logout {
+    background: #e53e3e;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.navbar a.logout:hover {
+    background: #c53030;
+}
+
+/* ====== MAIN CONTAINER ====== */
+.container {
+    max-width: 950px;
+    margin: 50px auto;
+    background: white;
+    padding: 35px 40px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+/* ====== HEADINGS ====== */
+h1 {
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+    color: #2c7a7b;
+}
+
+/* ====== FORM ====== */
+form input,
+form select {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 18px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+form input:focus,
+form select:focus {
+    border-color: #2c7a7b;
+    outline: none;
+}
+
+/* ====== BUTTONS ====== */
+button {
+    padding: 12px 25px;
+    background: #2c7a7b;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: background 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background: #276666;
+    transform: translateY(-1px);
+}
+
+button.secondary {
+    background: #888;
+}
+
+button.secondary:hover {
+    background: #666;
+}
+
+/* ====== PREVIEW BOX ====== */
+.preview {
+    margin-top: 30px;
+    padding: 25px;
+    border: 2px dashed #2c7a7b;
+    border-radius: 10px;
+    background: #f9fcfd;
+}
+
+/* ====== TABLE ====== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.95rem;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 12px 10px;
+    text-align: center;
+}
+
+th {
+    background: #2c7a7b;
+    color: white;
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background: #f7f9fb;
+}
+
+tr:hover {
+    background: #e6f2f2;
+}

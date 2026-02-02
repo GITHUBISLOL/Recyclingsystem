@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEA Bin Log</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                900: "#0f172a", // Dark navbar
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-slate-50 text-slate-800 font-sans">
+    <!-- Navbar -->
+    <nav class="bg-slate-900 text-white shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+          <div class="flex-shrink-0 flex items-center gap-2">
+            <span class="text-xl font-bold">♻ NEA Portal</span>
+          </div>
+          <ul id="navLinks" class="flex space-x-2">
+            <!-- Links injected by JS -->
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <h1 class="text-3xl font-bold text-center text-slate-900 mb-8">
+        Bin Log
+      </h1>
+
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full whitespace-nowrap" id="binTable">
+            <thead class="bg-slate-900 text-white">
+              <tr>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  ID
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Recycler Name
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Email
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Material Type
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Weight (kg)
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Bin Number
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Location
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Created At
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider"
+                >
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 bg-white">
+              <!-- Rows injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ----- User Session & Role -----
+      let userRole = "";
+
+      fetch("/api/sessionInfo", { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            userRole = data.role;
+            buildNavbar(userRole);
+            loadBinLog();
+          } else {
+            alert("Not logged in!");
+            window.location.href = "/";
+          }
+        });
+
+      function buildNavbar(role) {
+        const nav = document.getElementById("navLinks");
+        nav.innerHTML = "";
+        const linkClass =
+          "text-slate-300 hover:bg-emerald-600 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150";
+
+        if (role === "nea") {
+          nav.innerHTML = `
+            <li><a href="/nea/dashboard" class="${linkClass}">Dashboard</a></li>
+            <li><a href="/nea/recyclers" class="${linkClass}">Recycler Management</a></li>
+            <li><a href="/nea/binlog" class="${linkClass}">Bin Log</a></li>
+            <li><a href="/nea/blockSubmission" class="${linkClass}">Submit to Blockchain</a></li>
+            <li><a href="/nea/redemptions" class="${linkClass}">Payouts</a></li>
+            <li><a href="/index.html" class="${linkClass}">Logout</a></li>
+        `;
+        } else if (role === "recycler") {
+          nav.innerHTML = `
+            <li><a href="/recycler/dashboard" class="${linkClass}">Dashboard</a></li>
+            <li><a href="/recycler/binlog" class="${linkClass}">Bin Log</a></li>
+            <li><a href="/index.html" class="${linkClass}">Logout</a></li>
+        `;
+        }
+      }
+
+      function logout() {
+        const endpoint =
+          userRole === "nea" ? "/nea/logout" : "/recycler/logout";
+        fetch(endpoint, { method: "POST", credentials: "include" }).then(
+          () => (window.location.href = "/"),
+        );
+      }
+
+      // ----- Bin Locations -----
+      const binLocations = {
+        1: "Orchard",
+        2: "Tampines",
+        3: "Jurong",
+        4: "Bedok",
+      };
+
+      // ----- Load Bin Log -----
+      function loadBinLog() {
+        // Add timestamp to prevent browser caching of GET request
+        fetch("/api/getBins?t=" + Date.now(), { credentials: "include" })
+          .then((res) => res.json())
+          .then((data) => {
+            const tbody = document.querySelector("#binTable tbody");
+            tbody.innerHTML = "";
+            
+            if (data.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="10" class="px-6 py-4 text-center text-slate-500 italic">No submissions found.</td></tr>`;
+                 return;
+            }
+
+            data.forEach((bin) => {
+              const tr = document.createElement("tr");
+              tr.className = "hover:bg-slate-50 transition duration-150";
+
+              // Style status as a badge
+              let statusBadgeClass =
+                "px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full";
+              if (bin.status === "Approved") {
+                statusBadgeClass += " bg-green-100 text-green-800";
+              } else if (bin.status === "Rejected") {
+                statusBadgeClass += " bg-red-100 text-red-800";
+              } else {
+                statusBadgeClass += " bg-yellow-100 text-yellow-800";
+              }
+
+              // Action column for NEA to update status
+              let actionCell = '<td class="px-6 py-4 whitespace-nowrap"></td>';
+              if (userRole === "nea") {
+                actionCell = `
+                    <td class="px-6 py-4 whitespace-nowrap flex items-center">
+                        <select id="statusSelect_${bin.id}" class="border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 mr-2 bg-white text-slate-700">
+                            <option value="Pending" ${bin.status === "Pending" ? "selected" : ""}>Pending</option>
+                            <option value="Approved" ${bin.status === "Approved" ? "selected" : ""}>Approved</option>
+                            <option value="Rejected" ${bin.status === "Rejected" ? "selected" : ""}>Rejected</option>
+                        </select>
+                        <button class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1 rounded text-sm hover:from-emerald-600 hover:to-teal-700 transition shadow-sm font-medium" onclick="updateStatus(${bin.id})">Update</button>
+                    </td>
+                `;
+              }
+
+              // Common cell classes
+              const tdClass = "px-6 py-4 whitespace-nowrap text-sm text-slate-700";
+
+              tr.innerHTML = `
+                <td class="${tdClass}">${bin.id}</td>
+                <td class="${tdClass} font-medium text-slate-900">${bin.recycler_name}</td>
+                <td class="${tdClass}">${bin.email}</td>
+                <td class="${tdClass}">${bin.material_type}</td>
+                <td class="${tdClass}">${bin.weight}</td>
+                <td class="${tdClass}">${bin.bin_number}</td>
+                <td class="${tdClass}">${binLocations[bin.bin_number] || "Unknown"}</td>
+                <td class="${tdClass}">
+                  <span class="${statusBadgeClass}">
+                    ${bin.status}
+                  </span>
+                </td>
+                <td class="${tdClass}">${new Date(bin.created_at).toLocaleString()}</td>
+                ${actionCell}
+            `;
+              tbody.appendChild(tr);
+            });
+          });
+      }
+
+      // ----- Update Status (NEA only) -----
+      function updateStatus(id) {
+        if (userRole !== "nea") {
+          alert("Not authorized");
+          return;
+        }
+        const select = document.getElementById(`statusSelect_${id}`);
+        const status = select.value;
+
+        fetch(`/api/updateBinStatus/${id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ status }),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            alert(res.message);
+            loadBinLog();
+          });
+      }
+    </script>
+  </body>
+</html>
